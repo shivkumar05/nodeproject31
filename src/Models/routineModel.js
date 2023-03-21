@@ -12,8 +12,32 @@ const routineSchema = new mongoose.Schema({
     comment: { type: String },
     drill_id: { type: String, require: true },
     isCompleted: { type: Boolean, default: false },
-    end_date: { type: String, require: true }
+    end_date: { type: String, require: true },
+    dates: [{ type: String, require: true }]
+    // trackCompleted: { type: Boolean, default: false }
 
 }, { timestamps: true });
 
 module.exports = mongoose.model("routine", routineSchema)
+
+
+
+
+// let result = [];
+// dateRange.forEach((date) => {
+//     let dateObj = { date: date, categories: [] };
+//     // console.log(dateObj, "22222")
+//     routines.forEach((routine) => {
+//         let date = routine.date;
+//         // console.log(routine.category, "111")
+//         if (date) {
+//             dateObj.categories.push(routine.category);
+//         } else {
+//             date = {
+//                 date: date,
+//                 categories: [routine.category],
+//             };
+//         }
+//     });
+//     result.push(dateObj);
+// });

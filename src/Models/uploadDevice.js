@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const uploadDeviceSchema = new mongoose.Schema({
     userId: { type: String, require: true },
-    video: { type: String, require: true },
+    video: { type: String },
     thumbnail: { type: String, require: true },
     videoLength: { type: String },
     title: { type: String, require: true },

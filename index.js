@@ -10,13 +10,14 @@ const commnMid = require("./src/Middleware/Auth");
 const userprofile = require("./src/Models/profile");
 const myDrillModel = require("./src/Models/myDrillModel");
 const uploadDevice = require("./src/Models/uploadDevice");
+const routineModel = require("./src/Models/routineModel");
 const academyProfile = require("./src/Models/academyProfile");
 const assignedByModel = require("./src/Models/assignedByModel");
 const sncPlayerProfile = require("./src/Models/sncPlayerProfile");
-//const uploadExcelSheet = require("./src/Models/uploadExcelSheet");
 const onGoingDrillModel = require("./src/Models/onGoingDrillModel");
 const academy_coachModel = require("./src/Models/academy_coachModel");
 const recommendationModel = require("./src/Models/recommendationModel");
+const feedBackModel = require("./src/Models/feedBackModel");
 const port = process.env.PORT || 3000
 
 app.use(bodyParser.json());
@@ -49,7 +50,9 @@ app.post("/:userId/userProfile", commnMid.jwtValidation, commnMid.authorization,
 
         let { dob, gender, email, contact, height, weight, image, userId } = data
 
-        data.image = `/image/${file.filename}`;
+        if (file) {
+            data.image = `/image/${file.filename}`;
+        }
         data.userId = userid;
 
         let userCreated = await userprofile.create(data)
@@ -169,8 +172,10 @@ app.get("/:userId/myVideo", commnMid.jwtValidation, commnMid.authorization, asyn
 
         let getVideo = await uploadDevice.find({ $or: [filter] });
         arr.push(...getVideo);
-        let OnGoingData = await onGoingDrillModel.find({ userId: userId });
+        let OnGoingData = await onGoingDrillModel.find({ $or: [filter] });
         arr.push(...OnGoingData);
+        let MyDrillData = await myDrillModel.find({ $or: [filter] });
+        arr.push(...MyDrillData);
 
         return res.status(200).send({
             status: true,
@@ -245,19 +250,22 @@ app.get("/curriculum", async (req, res) => {
 
 //============================[My Drills]=======================================
 app.use('/image', express.static('./upload/videos'))
-app.post("/:userId/myDrills", commnMid.jwtValidation, commnMid.authorization, upload.array("videos", 100), async (req, res) => {
+app.post("/:userId/myDrills", commnMid.jwtValidation, commnMid.authorization, upload.fields([{ name: 'video', maxCount: 5 }, { name: 'thumbnail', maxCount: 5 }]), async (req, res) => {
     try {
         let data = req.body;
         let file = req.files;
         let userid = req.params.userId;
 
-        let { title, category, repetation, sets, videos, userId, isCompleted } = data;
+        let { title, category, repetation, sets, video, videoLength, thumbnail, userId, isCompleted, routine_id } = data;
 
-        let arr = [];
-        for (let i = 0; i < file.length; i++) {
-            arr.push(`/image/${file[i].filename}`)
-        };
-        data.videos = arr;
+        if (file && file.video) {
+            data.video = `/image/${file.video[0].filename}`;
+        }
+
+        if (file && file.thumbnail) {
+            data.thumbnail = `/image/${file.thumbnail[0].filename}`;
+        }
+
         data.userId = userid;
 
         let MyDrillCreated = await myDrillModel.create(data)
@@ -268,10 +276,13 @@ app.post("/:userId/myDrills", commnMid.jwtValidation, commnMid.authorization, up
         obj["category"] = MyDrillCreated.category
         obj["repetation"] = MyDrillCreated.repetation
         obj["sets"] = MyDrillCreated.sets
-        obj["videos"] = MyDrillCreated.videos
+        obj["video"] = MyDrillCreated.video
+        obj["videoLength"] = MyDrillCreated.videoLength
+        obj["thumbnail"] = MyDrillCreated.thumbnail
         obj["createdAt"] = MyDrillCreated.createdAt
         obj["userId"] = MyDrillCreated.userId
         obj["isCompleted"] = MyDrillCreated.isCompleted
+        obj["routine_id"] = MyDrillCreated.routine_id
 
         return res.status(201).send({
             status: true,
@@ -324,19 +335,15 @@ app.post("/:userId/sncPlayerProfile", commnMid.jwtValidation, commnMid.authoriza
 
 //============================[OnGoing Drills]=======================================
 app.use('/image', express.static('./upload/videos'))
-app.post("/:userId/OnGoingDrills", commnMid.jwtValidation, commnMid.authorization, upload.array("videos", 100), async (req, res) => {
+app.post("/:userId/OnGoingDrills", commnMid.jwtValidation, commnMid.authorization, upload.fields([{ name: 'video', maxCount: 5 }]), async (req, res) => {
     try {
         let data = req.body;
         let file = req.files;
         let userid = req.params.userId;
 
-        let { userId, title, category, repetation, sets, videos, comment, remarks, score } = data;
+        let { userId, title, category, repetation, sets, video, comment, remarks, score } = data;
 
-        let arr = [];
-        for (let i = 0; i < file.length; i++) {
-            arr.push(`/image/${file[i].filename}`)
-        };
-        data.videos = arr;
+        data.video = `/image/${file.video[0].filename}`
         data.userId = userid;
 
         const OnGoingDrillCreated = await onGoingDrillModel.create(data);
@@ -348,7 +355,7 @@ app.post("/:userId/OnGoingDrills", commnMid.jwtValidation, commnMid.authorizatio
             category: OnGoingDrillCreated.category,
             repetation: OnGoingDrillCreated.repetation,
             sets: OnGoingDrillCreated.sets,
-            videos: OnGoingDrillCreated.videos,
+            video: OnGoingDrillCreated.video,
             comment: OnGoingDrillCreated.comment,
             remarks: OnGoingDrillCreated.remarks,
             score: OnGoingDrillCreated.score,
@@ -474,7 +481,10 @@ app.post("/:userId/academyProfile", commnMid.jwtValidation, commnMid.authorizati
 
         let { userId, image, admin_name, email, contact, address } = data
 
-        data.image = `/image/${file.filename}`;
+        if (file) {
+            data.image = `/image/${file.filename}`;
+        }
+
         data.userId = userid;
 
         let user2 = await academy_coachModel.findById({ _id: userid });
@@ -528,7 +538,7 @@ app.put("/:userId/UpdateAcademyProfile", commnMid.jwtValidation, commnMid.author
 
 //============================[My Drills]=======================================
 app.use('/image', express.static('./upload/videos'))
-app.post("/:userId/assignedByDrills", commnMid.jwtValidation, commnMid.authorization, upload.array("videos", 100), async (req, res) => {
+app.post("/:userId/assignedByDrills", commnMid.jwtValidation, commnMid.authorization, upload.array("video", 100), async (req, res) => {
     try {
         let data = req.body;
         let files = req.files;
@@ -536,11 +546,11 @@ app.post("/:userId/assignedByDrills", commnMid.jwtValidation, commnMid.authoriza
 
         let { title, category, repetation, sets, assignedBy } = data;
 
-        let videos = files.map((file) => `/image/${file.filename}`);
+        let video = files.map((file) => `/image/${file.filename}`);
 
         data.assignedBy = userId;
 
-        data.videos = videos;
+        data.video = video;
 
         let assignedByCreated = await assignedByModel.create(data);
 
@@ -551,7 +561,7 @@ app.post("/:userId/assignedByDrills", commnMid.jwtValidation, commnMid.authoriza
         responseObj["category"] = assignedByCreated.category;
         responseObj["repetation"] = assignedByCreated.repetation;
         responseObj["sets"] = assignedByCreated.sets;
-        responseObj["videos"] = assignedByCreated.videos;
+        responseObj["video"] = assignedByCreated.video;
         responseObj["createdAt"] = assignedByCreated.createdAt;
         responseObj["assignedBy"] = assignedByCreated.assignedBy;
 
@@ -568,43 +578,62 @@ app.post("/:userId/assignedByDrills", commnMid.jwtValidation, commnMid.authoriza
     }
 });
 
-
-//==============================[ Upload Excel Sheet]=================
-const storage2 = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, './Files/file')
-    },
-    filename: function (req, file, cb) {
-        return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
-    }
-});
-const upload2 = multer({
-    storage: storage2,
-    limits: {
-        fileSize: 5000000000
-    }
-});
-
-app.use('/file', express.static('./Files/file'));
-app.post("/:userId/uploadFile", commnMid.jwtValidation, commnMid.authorization, upload2.single('excel_sheet'), async (req, res) => {
+//==============================[ Post feedback]=======================
+app.post("/:userId/feedback", commnMid.jwtValidation, commnMid.authorization, upload.single('file'), async (req, res) => {
     try {
-        let data = req.body;
+        var data = req.body;
         let file = req.file;
         let userid = req.params.userId;
+        let { userId, drill_id, timePosition, type, message, duration } = data;
+        let feedback = [];
 
-        let { userId, excel_sheet } = data
-
-        let workbook = xlsx.readFile(file.path);
-        let sheet = workbook.Sheets[workbook.SheetNames[0]];
-        let upload = xlsx.utils.sheet_to_json(sheet);
-        data.excel_sheet = upload;
+        if (file) {
+            data.file = `/image/${file.filename}`;
+        }
         data.userId = userid;
-        // res.send(data);
+
+        let feedbackCreated;
+        if (Array.isArray(data)) {
+            for (let i = 0; i < data.length; i++) {
+                feedbackCreated = await feedBackModel.create(data[i]);
+
+                let obj = {}
+                obj["_id"] = feedbackCreated._id
+                obj["userId"] = feedbackCreated.userId
+                obj["timePosition"] = feedbackCreated.timePosition
+                obj["type"] = feedbackCreated.type
+                obj["message"] = feedbackCreated.message
+                obj["duration"] = feedbackCreated.duration
+                obj["file"] = feedbackCreated.file
+
+                feedback.push(obj);
+            }
+        } else {
+            feedbackCreated = await feedBackModel.create(data);
+
+            let obj = {}
+            obj["_id"] = feedbackCreated._id
+            obj["userId"] = feedbackCreated.userId
+            obj["timePosition"] = feedbackCreated.timePosition
+            obj["type"] = feedbackCreated.type
+            obj["message"] = feedbackCreated.message
+            obj["duration"] = feedbackCreated.duration
+            obj["file"] = feedbackCreated.file
+
+            feedback.push(obj);
+        }
 
         return res.status(201).send({
-            message: "File Uploaded Successfully",
-            data: data
+            status: true,
+            message: 'Success',
+            data: {
+                drill_id: drill_id,
+                feedback
+            }
         })
+
+
+
     } catch (error) {
         return res.status(500).send({
             status: false,
@@ -612,6 +641,52 @@ app.post("/:userId/uploadFile", commnMid.jwtValidation, commnMid.authorization, 
         })
     }
 });
+
+
+//============================[Get All Drills]=======================================
+app.get("/:userId/allDrill", commnMid.jwtValidation, commnMid.authorization, async (req, res) => {
+    try {
+        let data = req.query;
+        let userid = req.params.userId;
+
+        let { category, title } = data;
+
+        let filter = {}
+
+        if (category) {
+            filter.category = category;
+        }
+        if (title) {
+            filter.title = title;
+        }
+
+        let allRoutines = await routineModel.find({ userId: userid, $or: [filter] }).lean();
+
+        let arr2 = [];
+
+        for (var i = 0; i < allRoutines.length; i++) {
+            arr2.push(allRoutines[i])
+        }
+
+        for (let i = 0; i < arr2.length; i++) {
+            let allDrill = await myDrillModel.find({ routine_id: arr2[i]._id })
+            arr2[i].allDrill = allDrill
+        }
+
+        return res.status(201).send({
+            status: true,
+            message: 'Success',
+            data: arr2
+        });
+    } catch (error) {
+        return res.status(500).send({
+            status: false,
+            message: error.message
+        })
+    }
+});
+
+
 
 
 

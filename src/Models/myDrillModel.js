@@ -5,10 +5,12 @@ const DrillSchema = new mongoose.Schema({
     category: { type: Number, require: true },
     repetation: { type: Number, require: true },
     sets: { type: Number, require: true },
-    videos: [{ type: String, require: true }],
+    video: { type: String },
+    thumbnail: { type: String },
+    videoLength: { type: String },
     userId: { type: String },
-    isCompleted: { type: Boolean, default: false }
-    
+    isCompleted: { type: Boolean, default: false },
+    routine_id: { type: String }
 
 }, { timestamps: true });
 

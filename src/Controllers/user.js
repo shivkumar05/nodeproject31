@@ -1,3 +1,4 @@
+const moment = require('moment');
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const tagModel = require("../Models/tagModel");
@@ -18,6 +19,7 @@ const strengthTestModel = require("../Models/strength_testModel");
 const academy_coachModel = require('../Models/academy_coachModel');
 const recommendationModel = require("../Models/recommendationModel");
 const scoreAndremarkModel = require("../Models/scoreAndremarkModel");
+const feedBackModel = require('../Models/feedBackModel');
 // const coachRoutineModel = require("../Models/coachRoutineModel");
 
 
@@ -503,18 +505,58 @@ const getTags = async function (req, res) {
 //============================[Create Routine]=========================================
 const createRoutine = async function (req, res) {
     try {
+        // let data = req.body;
+        // let userid = req.params.userId;
+
+        // let { drills, date, time, category, drill_id, repetation, sets, comment, userId, routineId, isCompleted, end_date } = data;
+        // data.userId = userid;
+
+        // let RoutineTime = await routineModel.findOne({ date: date, time: time });
+        // if (RoutineTime) {
+        //     return res.status(400).send({ status: false, message: "You already have a routine set for this time" })
+        // }
+
+        // let createRoutine = await routineModel.create(data);
+
+        // return res.status(201).send({
+        //     message: "Routine set successfully",
+        //     data: {
+        //         userId: createRoutine.userId,
+        //         drills: createRoutine.drills,
+        //         date: createRoutine.date,
+        //         time: createRoutine.time,
+        //         category: createRoutine.category,
+        //         repetation: createRoutine.repetation,
+        //         sets: createRoutine.sets,
+        //         comment: createRoutine.comment,
+        //         drill_id: createRoutine.drill_id,
+        //         routineId: createRoutine._id,
+        //         isCompleted: createRoutine.isCompleted,
+        //         end_date: createRoutine.end_date
+        //     }
+        // })
+
         let data = req.body;
         let userid = req.params.userId;
 
         let { drills, date, time, category, drill_id, repetation, sets, comment, userId, routineId, isCompleted, end_date } = data;
         data.userId = userid;
 
-        let RoutineTime = await routineModel.findOne({ date: date, time: time });
-        if (RoutineTime) {
-            return res.status(400).send({ status: false, message: "You already have a routine set for this time" })
-        }
+        let routines = await routineModel.find({ userId: userid });
+        console.log(routines, "11111")
+        let dates = routines.map(routine => routine.date);
+        // console.log(dates, "222")
 
         let createRoutine = await routineModel.create(data);
+
+        let startDateObj = new Date(start_date.split("-").reverse().join("-"));
+        let endDateObj = new Date(end_date.split("-").reverse().join("-"));
+
+        var dateRange = [];
+        for (let date = startDateObj; date <= endDateObj; date.setDate(date.getDate() + 1)) {
+            let formattedDate = date.toLocaleDateString("en-GB").split('/').join('-');
+            dateRange.push(formattedDate);
+        }
 
         return res.status(201).send({
             message: "Routine set successfully",
@@ -530,9 +572,11 @@ const createRoutine = async function (req, res) {
                 drill_id: createRoutine.drill_id,
                 routineId: createRoutine._id,
                 isCompleted: createRoutine.isCompleted,
-                end_date: createRoutine.end_date
+                end_date: createRoutine.end_date,
+                allDates: allDates
             }
         })
+
 
     }
     catch (error) {
@@ -546,22 +590,124 @@ const createRoutine = async function (req, res) {
 const getRoutineCount = async function (req, res) {
     try {
 
-        // let start_date = req.query.date;
-        // let end_date = req.query.end_date;
-        // let userid = req.params.userId;
+        let Querydate = req.query.date;
+        let userId = req.params.userId;
 
-        // let getRoutine = await routineModel.find({ userId: userid, date: { $gte: start_date, $lte: end_date } });
+        var getRoutine = await routineModel.find({ userId: userId });
 
-        // let categoryIds = Array.from(new Set(getRoutine.map(routine => routine.category)));
+        for (var j = 0; j < getRoutine.length; j++) {
+            var routine = getRoutine[j];
+            // console.log(routine, "aaaaa")
+        }
 
-        // let results = [];
+        var routineStartDate = routine.date;
+        var routineEndDate = routine.end_date;
 
-        // for (let i = 0; i < categoryIds.length; i++) {
-        //     let routinesByCategory = getRoutine.filter(routine => routine.category === categoryIds[i]);
+        let categoryIds = Array.from(new Set(getRoutine.map(routine => routine.category)));
 
+        var results = [];
+        // //=============================================
+        // const moment = require('moment');
+
+        // function getDatesInRange(startDate, endDate) {
+        //     const date = moment(startDate, 'DD-MM-YYYY');
+
+        //     var dates = [];
+
+        //     while (date <= moment(endDate, 'DD-MM-YYYY')) {
+        //         dates.push(date.toDate());
+        //         date.add(1, 'day');
+        //     }
+
+        //     return dates;
+        // }
+
+        // var routineStartDate = routine.date;
+        // var routineEndDate = routine.end_date;
+
+        // console.log(getDatesInRange(routineStartDate, routineEndDate))
+        // // results.push(getDatesInRange(routineStartDate, routineEndDate))
+
+        //====================================================
+
+        console.log(Querydate <= routineEndDate, "aaaa")
+        if (Querydate <= routineEndDate) {
+
+            for (let i = 0; i < categoryIds.length; i++) {
+                // console.log(categoryIds[i], "qqqqq")
+                let routinesByCategory = getRoutine.filter(routine => routine.category === categoryIds[i] && Querydate <= routineEndDate);
+                // console.log(routinesByCategory, "aaaasssss")
+
+                // if (Querydate >= routineStartDate && Querydate <= routineEndDate) {
+
+                let obj = {};
+
+                obj.category = categoryIds[i];
+
+                let count = routinesByCategory.length;
+                obj.noOfRoutines = count;
+
+                let complete = routinesByCategory.reduce((accumulator, currentValue) => {
+                    return accumulator + currentValue.isCompleted;
+                }, 0);
+                obj.completedRoutines = complete;
+
+                let reps = routinesByCategory.reduce((accumulator, currentValue) => {
+                    return accumulator + currentValue.repetation;
+                }, 0);
+                obj.expected_reps = reps;
+
+                let sets = routinesByCategory.reduce((accumulator, currentValue) => {
+                    return accumulator + currentValue.sets;
+                }, 0);
+                obj.expected_sets = sets;
+
+                let completedReps = routinesByCategory.filter(routine => routine.isCompleted === true);
+                if (completedReps) {
+                    let repsDone = completedReps.reduce((accumulator, currentValue) => {
+                        return accumulator + currentValue.repetation;
+                    }, 0);
+                    obj.reps_done = repsDone;
+                }
+
+                let completedSets = routinesByCategory.filter(routine => routine.isCompleted === true);
+                if (completedSets) {
+                    let setsDone = completedSets.reduce((accumulator, currentValue) => {
+                        return accumulator + currentValue.sets;
+                    }, 0);
+                    obj.sets_done = setsDone;
+                }
+
+                results.push(obj);
+            }
+            // }
+        }
+
+        return res.status(200).send({
+            status: true,
+            data: results
+        });
+
+        // let Querydate = req.query.date;
+        // let userId = req.params.userId;
+
+        // var getRoutine = await routineModel.find({ userId: userId });
+
+        // var results = [];
+
+        // for (var j = 0; j < getRoutine.length; j++) {
+        //     var routine = getRoutine[j];
+        // }
+        // var routineStartDate = routine.date;
+        // var routineEndDate = routine.end_date;
+        // var category = routine.category;
+
+        // if (Querydate <= routineEndDate) {
         //     let obj = {};
 
-        //     obj.category = categoryIds[i];
+        //     obj.category = category;
+
+        //     let routinesByCategory = getRoutine.filter(routine => routine.category === category && Querydate >= routine.date && Querydate <= routine.end_date);
 
         //     let count = routinesByCategory.length;
         //     obj.noOfRoutines = count;
@@ -605,47 +751,6 @@ const getRoutineCount = async function (req, res) {
         //     data: results
         // });
 
-        let startDate = req.query.date;
-        let userId = req.params.userId;
-
-        let getRoutine = await routineModel.find({ userId: userId, date: { $lte: startDate } }).sort({ date: 'asc' });
-
-        let results = [];
-
-        for (let i = 0; i < getRoutine.length; i++) {
-            let routine = getRoutine[i];
-
-            let obj = {};
-
-            obj.category = routine.category;
-            obj.date = routine.date;
-
-            let count = getRoutine.filter(r => r.category === routine.category).length;
-            obj.noOfRoutines = count;
-
-            let completedRoutines = getRoutine.filter(r => r.category === routine.category && r.isCompleted).length;
-            obj.completedRoutines = completedRoutines;
-
-            let expected_reps = getRoutine.filter(r => r.category === routine.category).reduce((acc, cur) => acc + cur.repetation, 0);
-            obj.expected_reps = expected_reps;
-
-            let expected_sets = getRoutine.filter(r => r.category === routine.category).reduce((acc, cur) => acc + cur.sets, 0);
-            obj.expected_sets = expected_sets;
-
-            let completedReps = getRoutine.filter(r => r.category === routine.category && r.isCompleted).reduce((acc, cur) => acc + cur.repetation, 0);
-            obj.reps_done = completedReps;
-
-            let completedSets = getRoutine.filter(r => r.category === routine.category && r.isCompleted).reduce((acc, cur) => acc + cur.sets, 0);
-            obj.sets_done = completedSets;
-
-            results.push(obj);
-        }
-
-        return res.status(200).send({
-            status: true,
-            data: results
-        });
-
     }
     catch (error) {
         return res.status(500).send({
@@ -686,39 +791,15 @@ const updateRoutine = async function (req, res) {
 //=====================[Get Routine]==================================
 const getRoutine = async function (req, res) {
     try {
-
-        // let date = req.query.date;
-        // let userId = req.params.userId;
-
-        // let routines = await routineModel.find({ userId: userId, date: date });
-
-        // var arr = [];
-
-        // for (var i = 0; i < routines.length; i++) {
-        //     var routine = routines[i];
-
-        //     if (date >= routine.date && date <= routine.end_date) {
-        //     arr.push(routine);
-        //     }
-        // }
-        // if (arr.length > 0) {
-        //     return res.status(200).send({
-        //         status: true,
-        //         message: "The routines are currently active",
-        //         data: arr
-        //     });
-        // } else {
-        //     return res.status(200).send({
-        //         status: true,
-        //         message: "No routines are currently active",
-        //         data: []
-        //     });
-        // }
-
         let date = req.query.date;
         let userId = req.params.userId;
 
-        let routines = await routineModel.find({ userId: userId, end_date: { $lte: date } });
+        let query = { userId: userId };
+        if (date) {
+            query.date = date;
+        }
+
+        let routines = await routineModel.find(query);
 
         if (routines.length > 0) {
             return res.status(200).send({
@@ -733,6 +814,65 @@ const getRoutine = async function (req, res) {
                 data: []
             });
         }
+
+
+        // let date = req.query.date;
+        // let userId = req.params.userId;
+
+        // let routines = await routineModel.find({ userId: userId });
+        // let arr = [];
+
+        // let dateRange = [];
+        // for (let i = 0; i < routines.length; i++) {
+        //     let routine = routines[i];
+        //     let startDate = routine.date;
+        //     let endDate = routine.end_date;
+
+        //     var startDateObj = new Date(startDate.split("-").reverse().join("-"));
+        //     var endDateObj = new Date(endDate.split("-").reverse().join("-"));
+        // }
+        // for (let date = startDateObj; date <= endDateObj; date.setDate(date.getDate() + 1)) {
+        //     let formattedDate = date.toLocaleDateString("en-GB");
+        //     dateRange.push(formattedDate);
+        // }
+
+        // if (dateRange) {
+        //     arr.push(routines)
+        // }
+
+        // if (arr.length > 0) {
+        //     return res.status(200).send({
+        //         status: true,
+        //         message: "The routines are currently active",
+        //         data: arr
+        //     });
+        // } else {
+        //     return res.status(200).send({
+        //         status: true,
+        //         message: "No routines are currently active",
+        //         data: []
+        //     });
+        // }
+
+
+
+
+        // let date = "16-03-2023"
+        // let end_date = "20-03-2023"
+
+        // const moment = require('moment');
+
+        // let startDate = moment(date, 'DD-MM-YYYY');
+        // let endDate = moment(end_date, 'DD-MM-YYYY');
+        // let dates = [];
+
+        // while (startDate <= endDate) {
+        //     dates.push(startDate.format('DD-MM-YYYY'));
+        //     startDate.add(1, 'days');
+        // }
+
+        // console.log(dates);
+
     }
     catch (error) {
         return res.status(500).send({
@@ -760,8 +900,8 @@ const deleteRoutine = async function (req, res) {
     }
 };
 
-//============================[Get My Drills]===================================
-const getMyDrills = async function (req, res) {
+//============================[Get New Routine]===================================
+const getNewRoutine = async function (req, res) {
     try {
         let data = req.query;
         let userid = req.params.userId;
@@ -776,11 +916,16 @@ const getMyDrills = async function (req, res) {
             filter.title = title;
         }
 
-        const drills = await routineModel.find({ userId: userid, isCompleted: false, $or: [filter] }).select({ createdAt: 0, updatedAt: 0, __v: 0 });
+        const drills = await routineModel.find({ userId: userid, isCompleted: false, $or: [filter] }).lean();
 
         let arr = [];
         for (let i = 0; i < drills.length; i++) {
             arr.push(drills[i])
+        }
+
+        for (let i = 0; i < arr.length; i++) {
+            let allDrill = await myDrillModel.find({ routine_id: arr[i]._id })
+            arr[i].allDrill = allDrill
         }
 
         return res.status(200).send({
@@ -910,8 +1055,8 @@ const createStrengthTest = async function (req, res) {
     }
 };
 
-//===================[Get Past Drills]======================================
-const getPastDrill = async function (req, res) {
+//===================[Get Past Routines]======================================
+const getPastRoutine = async function (req, res) {
     try {
         let data = req.query;
         let userid = req.params.userId;
@@ -929,15 +1074,25 @@ const getPastDrill = async function (req, res) {
 
         let drills = await routineModel.find({ userId: userid, isCompleted: true, $or: [filter] }).lean();
 
+        let arr = [];
+        for (let i = 0; i < drills.length; i++) {
+            arr.push(drills[i])
+        }
+
+        for (let i = 0; i < arr.length; i++) {
+            let allDrill = await myDrillModel.find({ routine_id: arr[i]._id })
+            arr[i].allDrill = allDrill
+        }
+
         for (let i = 0; i < drills.length; i++) {
             let userRecommendation = await recommendationModel.find({ userId: drills[i].userId }).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 });
-            drills[i].recommendation = userRecommendation;
+            arr[i].recommendation = userRecommendation;
         }
 
         return res.status(200).send({
             status: true,
             message: "success",
-            data: drills
+            data: arr
         })
     }
     catch (error) {
@@ -948,7 +1103,7 @@ const getPastDrill = async function (req, res) {
     }
 };
 //==========================[Get Complete Drill]====================================
-const getCompleteDrill = async function (req, res) {
+const getOngoingRoutine = async function (req, res) {
     try {
         let data = req.query;
         let userid = req.params.userId;
@@ -964,12 +1119,22 @@ const getCompleteDrill = async function (req, res) {
             filter.title = title;
         }
 
-        const drills = await routineModel.find({ userId: userid, isCompleted: true, $or: [filter] }).select({ createdAt: 0, updatedAt: 0, __v: 0 });
+        const drills = await routineModel.find({ userId: userid, isCompleted: true, $or: [filter] }).lean();
+
+        let arr = [];
+        for (let i = 0; i < drills.length; i++) {
+            arr.push(drills[i])
+        }
+
+        for (let i = 0; i < arr.length; i++) {
+            let allDrill = await myDrillModel.find({ routine_id: arr[i]._id })
+            arr[i].allDrill = allDrill
+        }
 
         return res.status(200).send({
             status: true,
             message: "success",
-            data: drills
+            data: arr
         })
 
     }
@@ -1270,35 +1435,116 @@ const getCalendarCount = async function (req, res) {
         //     data: result,
         // });
 
+
+        // let start_date = req.query.date;
+        // let end_date = req.query.end_date;
+        // var userId = req.params.userId;
+
+        // let startDateObj = new Date(start_date.split("-").reverse().join("-"));
+        // let endDateObj = new Date(end_date.split("-").reverse().join("-"));
+
+        // var dateRange = [];
+        // for (let date = startDateObj; date <= endDateObj; date.setDate(date.getDate() + 1)) {
+        //     let formattedDate = date.toLocaleDateString("en-GB").split('/').join('-');
+        //     dateRange.push(formattedDate);
+        // }
+
+        // let routines = await routineModel.find({ userId: userId });
+
+        // let result = [];
+        // dateRange.forEach((date) => {
+        //     let dateObj = { date: date, categories: [] };
+        //     routines.forEach((routine) => {
+        //         let date = routine.date;
+        //         let User = routine.userId
+        //         if (date && User) {
+        //             dateObj.categories.push(routine.category);
+        //         } else {
+        //             date = {
+        //                 date: date,
+        //                 categories: [],
+        //             };
+        //         }
+        //     });
+        //     result.push(dateObj);
+        // });
+
+        // return res.status(200).send({
+        //     status: true,
+        //     data: result,
+        // });
+
         let start_date = req.query.date;
         let end_date = req.query.end_date;
-        let userid = req.params.userId;
+        var userId = req.params.userId;
 
-        let routines = await routineModel.find({ userId: userid, date: { $gte: start_date, $lte: end_date } }).sort({ date: 1 });
-        console.log(routines, "11111")
+        let startDateObj = new Date(start_date.split("-").reverse().join("-"));
+        let endDateObj = new Date(end_date.split("-").reverse().join("-"));
 
-        let dates = {};
-        routines.forEach((routine) => {
-            let date = routine.date;
-            if (dates[date]) {
-                dates[date].categories.push(routine.category);
-            } else {
-                dates[date] = {
-                    date: date,
-                    categories: [routine.category],
-                };
-            }
-        });
+        var dateRange = [];
+        for (let date = startDateObj; date <= endDateObj; date.setDate(date.getDate() + 1)) {
+            let formattedDate = date.toLocaleDateString("en-GB").split('/').join('-');
+            dateRange.push(formattedDate);
+        }
+
+        let routines = await routineModel.find({ userId: userId, date: dateRange });
 
         let result = [];
-        for (let date in dates) {
-            result.push(dates[date]);
-        }
+        dateRange.forEach((date) => {
+            let dateObj = { date: date, categories: [] };
+            routines.forEach((routine) => {
+                if (routine.date == date) {
+                    dateObj.categories.push(routine.category);
+                }
+            });
+            result.push(dateObj);
+        });
 
         return res.status(200).send({
             status: true,
             data: result,
         });
+
+
+
+        // let start_date = req.query.date;
+        // let end_date = req.query.end_date;
+        // let userId = req.params.userId;
+
+        // let startDateObj = new Date(start_date.split("-").reverse().join("-"));
+        // let endDateObj = new Date(end_date.split("-").reverse().join("-"));
+
+        // let dateRange = [];
+        // for (let date = startDateObj; date <= endDateObj; date.setDate(date.getDate() + 1)) {
+        //     let formattedDate = date.toLocaleDateString("en-GB");
+        //     dateRange.push(formattedDate);
+        // }
+
+        // let routines = await routineModel.find({ userId: userId }).sort({ date: 1 });
+
+        // let result = [];
+        // dateRange.forEach((date) => {
+        //     let dateObj = { date: date, categories: [] };
+        //     routines.forEach((routine) => {
+        //         let date = routine.date;
+        //         let User = routine.userId
+        //         if (date && User) {
+        //             dateObj.categories.push(routine.category);
+        //         } else {
+        //             date = {
+        //                 date: date,
+        //                 categories: [],
+        //             };
+        //         }
+        //     });
+        //     result.push(dateObj);
+        // });
+
+        // return res.status(200).send({
+        //     status: true,
+        //     data: result,
+        // });
+
     }
     catch (error) {
         return res.status(500).send({
@@ -1307,6 +1553,7 @@ const getCalendarCount = async function (req, res) {
         })
     }
 };
+
 //==========================[Update category for Routine]==============
 const updateCategoryRoutine = async function (req, res) {
     try {
@@ -1499,12 +1746,121 @@ const createPlayerRoutine = async function (req, res) {
 //     }
 // };
 
-//=============================================================================================
+//==============================[Get New Drills]=================================================
+const getNewDrill = async function (req, res) {
+    try {
+        let data = req.query;
+        let userid = req.params.userId;
+
+        let { category, title } = data;
+
+        let filter = {}
+
+        if (category) {
+            filter.category = category;
+        }
+        if (title) {
+            filter.title = title;
+        }
+
+        let getNew = await myDrillModel.find({ userId: userid, isCompleted: false, $or: [filter] });
+
+        return res.status(201).send({
+            status: true,
+            message: "Success",
+            data: getNew
+        })
+    }
+    catch (error) {
+        return res.status(500).send({
+            status: false,
+            msg: error.message
+        })
+    }
+};
+
+//==============================[Get Ongoing Drills]=================================================
+const getOngoingDrill = async function (req, res) {
+    try {
+        let data = req.query;
+        let userid = req.params.userId;
+
+        let { category, title } = data;
+
+        let filter = {}
+
+        if (category) {
+            filter.category = category;
+        }
+        if (title) {
+            filter.title = title;
+        }
+
+        let getOngoing = await myDrillModel.find({ userId: userid, isCompleted: true, $or: [filter] });
+
+        return res.status(201).send({
+            status: true,
+            message: "Success",
+            data: getOngoing
+        })
+    }
+    catch (error) {
+        return res.status(500).send({
+            status: false,
+            msg: error.message
+        })
+    }
+};
+
+//=============================[Get Past Drills]============================
+const getPastDrill = async function (req, res) {
+    try {
+        let data = req.query;
+        let userid = req.params.userId;
+
+        let { category, title } = data;
+
+        let filter = {}
+
+        if (category) {
+            filter.category = category;
+        }
+        if (title) {
+            filter.title = title;
+        }
+
+        let getPast = await myDrillModel.find({ userId: userid, isCompleted: true, $or: [filter] }).lean();
+
+        let arr = [];
+
+        for (var i = 0; i < getPast.length; i++) {
+            data.videoId = getPast[i]._id
+            arr.push(data.videoId)
+        }
+        let arr2 = [];
+        for (let i = 0; i < getPast.length; i++) {
+            arr2.push(getPast[i])
+        }
+
+        for (let i = 0; i < arr2.length; i++) {
+            let userRecommendation = await recommendationModel.find({ userId: arr2[i].userId }).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 });
+            arr2[i].recommendation = userRecommendation;
+        }
+
+        return res.status(201).send({
+            status: true,
+            message: 'Success',
+            data: arr2
+        });
+    } catch (error) {
+        return res.status(500).send({
+            status: false,
+            message: error.message
+        })
+    }
+};
 
 
-
-
-
-module.exports = { createPlayerRoutine, scoreAndremark, updateCategoryRoutine, getCalendarCount, getRoutineCount, getCompleteDrill, updateRoutine, getContactCoach, updateCoachPassword, getAllUsers, updateBat_Bow, getAssignedByDrills, AcademyLogin, createUser, userLogin, getContact, createBattings, updateBatting, createBowlings, updateBowling, createWickets, updateWicket, bow_bat, createRoutine, deleteRoutine, getRoutine, category, getCategory, getTags, tag, getMyDrills, readinessSurvey, createPowerTest, createStrengthTest, createAcademy, updateDrill, updatePassword, getPastDrill, getPersonal, getProgress, getUsers }
+module.exports = { getPastDrill, getOngoingDrill, getNewDrill, createPlayerRoutine, scoreAndremark, updateCategoryRoutine, getCalendarCount, getRoutineCount, getOngoingRoutine, updateRoutine, getContactCoach, updateCoachPassword, getAllUsers, updateBat_Bow, getAssignedByDrills, AcademyLogin, createUser, userLogin, getContact, createBattings, updateBatting, createBowlings, updateBowling, createWickets, updateWicket, bow_bat, createRoutine, deleteRoutine, getRoutine, category, getCategory, getTags, tag, getNewRoutine, readinessSurvey, createPowerTest, createStrengthTest, createAcademy, updateDrill, updatePassword, getPastRoutine, getPersonal, getProgress, getUsers }
 
 

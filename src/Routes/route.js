@@ -20,7 +20,7 @@ Router.get("/:userId/Tags", commnMid.jwtValidation, commnMid.authorization, batt
 Router.get("/:userId/Categoy", commnMid.jwtValidation, commnMid.authorization, battingController.getCategory);
 Router.post("/:userId/bow_batPost", commnMid.jwtValidation, commnMid.authorization, battingController.bow_bat);
 Router.get("/:userId/getRoutine", commnMid.jwtValidation, commnMid.authorization, battingController.getRoutine);
-Router.get("/:userId/getMyDrill", commnMid.jwtValidation, commnMid.authorization, battingController.getMyDrills);
+Router.get("/:userId/getNewRoutine", commnMid.jwtValidation, commnMid.authorization, battingController.getNewRoutine);
 Router.put("/:userId/updateDrill", commnMid.jwtValidation, commnMid.authorization, battingController.updateDrill);
 Router.post("/:userId/batting", commnMid.jwtValidation, commnMid.authorization, battingController.createBattings);
 Router.get("/:userId/getAllUsers", commnMid.jwtValidation, commnMid.authorization, battingController.getAllUsers);
@@ -28,26 +28,30 @@ Router.post("/:userId/bowling", commnMid.jwtValidation, commnMid.authorization, 
 Router.get("/:userId/getPersonal", commnMid.jwtValidation, commnMid.authorization, battingController.getPersonal);
 Router.get("/:userId/getProgress", commnMid.jwtValidation, commnMid.authorization, battingController.getProgress);
 Router.put("/:userId/updateWicket", commnMid.jwtValidation, commnMid.authorization, battingController.updateWicket);
-Router.get("/:userId/getPastDrill", commnMid.jwtValidation, commnMid.authorization, battingController.getPastDrill);
-Router.post("/:userId/postDrills", commnMid.jwtValidation, commnMid.authorization, battingController.createRoutine);
 Router.post("/:userId/PowerTest", commnMid.jwtValidation, commnMid.authorization, battingController.createPowerTest);
 Router.put("/:userId/updateBatting", commnMid.jwtValidation, commnMid.authorization, battingController.updateBatting);
 Router.put("/:userId/updateBowling", commnMid.jwtValidation, commnMid.authorization, battingController.updateBowling);
 Router.put("/:userId/updateRoutine", commnMid.jwtValidation, commnMid.authorization, battingController.updateRoutine);
 Router.put("/:userId/updateBat_Bow", commnMid.jwtValidation, commnMid.authorization, battingController.updateBat_Bow);
+Router.post("/:userId/createRoutine", commnMid.jwtValidation, commnMid.authorization, battingController.createRoutine);
 Router.post("/:userId/wicketKeeping", commnMid.jwtValidation, commnMid.authorization, battingController.createWickets);
+Router.get("/:userId/getPastRoutine", commnMid.jwtValidation, commnMid.authorization, battingController.getPastRoutine);
 Router.delete("/:userId/deleteRoutine", commnMid.jwtValidation, commnMid.authorization, battingController.deleteRoutine);
 Router.post("/:userId/scoreAndremark", commnMid.jwtValidation, commnMid.authorization, battingController.scoreAndremark);
 // Router.get("/:userId/getCoachRoutine", commnMid.jwtValidation, commnMid.authorization, battingController.getCoachRoutine);
 Router.get("/:userId/getRoutineCount", commnMid.jwtValidation, commnMid.authorization, battingController.getRoutineCount);
 Router.post("/:userId/readinessSurvey", commnMid.jwtValidation, commnMid.authorization, battingController.readinessSurvey);
 Router.post("/:userId/StrengthTest", commnMid.jwtValidation, commnMid.authorization, battingController.createStrengthTest);
-Router.get("/:userId/getCompleteDrill", commnMid.jwtValidation, commnMid.authorization, battingController.getCompleteDrill);
+Router.get("/:userId/getOngoingRoutine", commnMid.jwtValidation, commnMid.authorization, battingController.getOngoingRoutine);
 Router.get("/:userId/getCalendarCount", commnMid.jwtValidation, commnMid.authorization, battingController.getCalendarCount);
 Router.post("/:userId/playerRoutine", commnMid.jwtValidation, commnMid.authorization, battingController.createPlayerRoutine);
 Router.get("/:userId/getAssignedBydrills", commnMid.jwtValidation, commnMid.authorization, battingController.getAssignedByDrills);
 // Router.post("/:userId/createCoachRoutine", commnMid.jwtValidation, commnMid.authorization, battingController.createCoachRoutine);
 Router.put("/:userId/updateCategoryRoutine", commnMid.jwtValidation, commnMid.authorization, battingController.updateCategoryRoutine);
+Router.get("/:userId/getNewDrill", commnMid.jwtValidation, commnMid.authorization, battingController.getNewDrill);
+Router.get("/:userId/getOngoingDrill", commnMid.jwtValidation, commnMid.authorization, battingController.getOngoingDrill);
+Router.get("/:userId/getPastDrill", commnMid.jwtValidation, commnMid.authorization, battingController.getPastDrill);
+
 
 //===================== checking your end point valid or not =======================//
 Router.all("/**", function (req, res) {

@@ -6,7 +6,7 @@ const OnGoingDrillSchema = new mongoose.Schema({
     category: { type: Number, require: true },
     repetation: { type: Number, require: true },
     sets: { type: Number, require: true },
-    videos: [{ type: String, require: true }],
+    video: { type: String },
     comment: { type: String },
     remarks: { type: String, require: true },
     score: { type: Number, require: true }

@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const academyProfile = new mongoose.Schema({
     userId: { type: String, require: true },
-    image: { type: String, require: true },
+    image: { type: String},
     admin_name: { type: String, require: true },
     email: { type: String, require: true },
     contact: { type: Number, require: true },
