@@ -1,4 +1,3 @@
-const moment = require('moment');
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const tagModel = require("../Models/tagModel");
@@ -20,8 +19,6 @@ const academy_coachModel = require('../Models/academy_coachModel');
 const recommendationModel = require("../Models/recommendationModel");
 const scoreAndremarkModel = require("../Models/scoreAndremarkModel");
 const feedBackModel = require('../Models/feedBackModel');
-// const coachRoutineModel = require("../Models/coachRoutineModel");
-
 
 //==========================[user register]==============================
 const createUser = async function (req, res) {
@@ -61,6 +58,66 @@ const createUser = async function (req, res) {
     }
     catch (err) {
         res.status(500).send({ status: false, error: err.message })
+    }
+};
+//====================[Create Feedback]==========================
+const createFeedback = async function (req, res) {
+    try {
+        var data = req.body;
+        // var drill_id = req.body.drill_id;
+        let userId = req.params.userId;
+
+        let { drill_id, timePosition, type, message, duration, file } = data;
+
+        let feedback = [];
+
+        data.userId = userId;
+
+        let feedbackCreated;
+        if (Array.isArray(data)) {
+            for (let i = 0; i < data.length; i++) {
+                feedbackCreated = await feedBackModel.create(data[i]);
+
+                let obj = {}
+                obj["_id"] = feedbackCreated._id
+                obj["drill_id"] = feedbackCreated.drill_id
+                obj["userId"] = data.userId
+                obj["timePosition"] = feedbackCreated.timePosition
+                obj["type"] = feedbackCreated.type
+                obj["message"] = feedbackCreated.message
+                obj["duration"] = feedbackCreated.duration
+                obj["file"] = feedbackCreated.file
+
+                feedback.push(obj);
+            }
+        } else {
+            feedbackCreated = await feedBackModel.create(data);
+
+            let obj = {}
+            obj["_id"] = feedbackCreated._id
+            obj["userId"] = data.userId
+            obj["timePosition"] = feedbackCreated.timePosition
+            obj["type"] = feedbackCreated.type
+            obj["message"] = feedbackCreated.message
+            obj["duration"] = feedbackCreated.duration
+            obj["file"] = feedbackCreated.file
+
+        }
+
+        return res.status(201).send({
+            status: true,
+            message: 'Success',
+            data: {
+                drill_id: feedback[0].drill_id,
+                feedback
+            }
+        })
+
+    } catch (error) {
+        return res.status(500).send({
+            status: false,
+            msg: error.message
+        })
     }
 };
 
@@ -1063,7 +1120,7 @@ const getPastRoutine = async function (req, res) {
 
         let { category, title } = data;
 
-        let filter = {}
+        let filter = {};
 
         if (category) {
             filter.category = category;
@@ -1072,37 +1129,58 @@ const getPastRoutine = async function (req, res) {
             filter.title = title;
         }
 
-        let drills = await routineModel.find({ userId: userid, isCompleted: true, $or: [filter] }).lean();
+        let userDrill = await routineModel.find({ userId: userid, isCompleted: true, $or: [filter] }).lean();
 
         let arr = [];
-        for (let i = 0; i < drills.length; i++) {
-            arr.push(drills[i])
+
+        for (let i = 0; i < userDrill.length; i++) {
+            arr.push(userDrill[i]);
         }
 
         for (let i = 0; i < arr.length; i++) {
-            let allDrill = await myDrillModel.find({ routine_id: arr[i]._id })
-            arr[i].allDrill = allDrill
-        }
+            let allDrills = await myDrillModel.find({ routine_id: arr[i]._id }).lean();
 
-        for (let i = 0; i < drills.length; i++) {
-            let userRecommendation = await recommendationModel.find({ userId: drills[i].userId }).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 });
-            arr[i].recommendation = userRecommendation;
+            let drill = {
+                ...arr[i],
+                allDrill: [],
+            };
+
+            for (let j = 0; j < allDrills.length; j++) {
+                let drillId = allDrills[j]._id;
+
+                let userFeedback = await feedBackModel.find({ drill_id: drillId }).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 })
+
+                let userScoreAndRemark = await scoreAndremarkModel.find({ drill_id: drillId }).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 })
+
+                let drillData = {
+                    ...allDrills[j],
+                    feedback: userFeedback,
+                    scoreAndRemark: userScoreAndRemark,
+                };
+
+                drill.allDrill.push(drillData);
+            }
+
+            let userRecommendation = await recommendationModel.find({ userId: arr[i].userId }).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 })
+
+            drill.recommendation = userRecommendation;
+
+            arr[i] = drill;
         }
 
         return res.status(200).send({
             status: true,
             message: "success",
             data: arr
-        })
-    }
-    catch (error) {
+        });
+    } catch (error) {
         return res.status(500).send({
             status: false,
             msg: error.message
-        })
+        });
     }
 };
-//==========================[Get Complete Drill]====================================
+//==========================[Get Ongoing Routine]====================================
 const getOngoingRoutine = async function (req, res) {
     try {
         let data = req.query;
@@ -1643,108 +1721,6 @@ const createPlayerRoutine = async function (req, res) {
         })
     }
 }
-//============================[Create Routine]=========================================
-// const createCoachRoutine = async function (req, res) {
-//     try {
-//         let data = req.body;
-//         let userid = req.params.userId;
-
-//         let { drills, date, time, category, repetation, sets, userId, routineId } = data;
-//         data.userId = userid;
-
-//         let RoutineTime = await coachRoutineModel.findOne({ date: date, time: time });
-//         if (RoutineTime) {
-//             return res.status(400).send({ status: false, message: "You already have a routine set for this time" })
-//         }
-
-//         let createCoachRoutine = await coachRoutineModel.create(data);
-
-//         return res.status(201).send({
-//             message: "Coach Routine set successfully",
-//             data: {
-//                 userId: createCoachRoutine.userId,
-//                 drills: createCoachRoutine.drills,
-//                 date: createCoachRoutine.date,
-//                 time: createCoachRoutine.time,
-//                 category: createCoachRoutine.category,
-//                 repetation: createCoachRoutine.repetation,
-//                 sets: createCoachRoutine.sets,
-//                 routineId: createCoachRoutine._id
-//             }
-//         })
-//     }
-//=================================================================
-// let date = req.query.date;
-// let userId = req.params.userId;
-
-// let routines = await routineModel.find({ userId: userId });
-
-// let activeRoutine = null;
-
-// var arr = [];
-
-// for (var i = 0; i < routines.length; i++) {
-//     var routine = routines[i];
-
-//     if (date >= routine.date && date <= routine.end_date) {
-//         activeRoutine = routine;
-//         arr.push(activeRoutine)
-//     }
-// }
-
-// if (activeRoutine) {
-//     return res.status(200).send({
-//         status: true,
-//         message: "The routine is currently active",
-//         data: arr
-//     });
-// } else {
-//     return res.status(400).send({
-//         status: false,
-//         message: "The routine is not currently active",
-//         data: []
-//     });
-// }
-//=========================================================================
-//     catch (error) {
-//         return res.status(500).send({
-//             status: false,
-//             message: error.message
-//         })
-//     }
-// };
-
-// //=====================[Get Coach Routine]==================================
-// const getCoachRoutine = async function (req, res) {
-//     try {
-//         let data = req.query;
-//         let userid = req.params.userId;
-
-//         let { date } = data;
-
-//         let filter = {}
-
-//         if (date) {
-//             filter.date = date;
-//         }
-//         if (userid) {
-//             filter.userId = userid
-//         }
-
-//         const getRoutines = await coachRoutineModel.find({ $or: [filter] }).sort({ time: data.time })
-
-//         return res.status(200).send({
-//             status: true,
-//             data: getRoutines
-//         })
-//     }
-//     catch (error) {
-//         return res.status(500).send({
-//             status: false,
-//             message: error.message
-//         })
-//     }
-// };
 
 //==============================[Get New Drills]=================================================
 const getNewDrill = async function (req, res) {
@@ -1816,7 +1792,7 @@ const getOngoingDrill = async function (req, res) {
 const getPastDrill = async function (req, res) {
     try {
         let data = req.query;
-        let userid = req.params.userId;
+        let userId = req.params.userId;
 
         let { category, title } = data;
 
@@ -1829,7 +1805,7 @@ const getPastDrill = async function (req, res) {
             filter.title = title;
         }
 
-        let getPast = await myDrillModel.find({ userId: userid, isCompleted: true, $or: [filter] }).lean();
+        let getPast = await myDrillModel.find({ userId: userId, isCompleted: true, $or: [filter] }).lean();
 
         let arr = [];
 
@@ -1847,6 +1823,16 @@ const getPastDrill = async function (req, res) {
             arr2[i].recommendation = userRecommendation;
         }
 
+        for (let i = 0; i < arr2.length; i++) {
+            let userFeedback = await feedBackModel.find({ drill_id: arr2[i]._id }).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 });
+            arr2[i].feedback = userFeedback;
+        }
+
+        for (let i = 0; i < arr2.length; i++) {
+            let userScoreAndRemark = await scoreAndremarkModel.find({ drill_id: arr2[i]._id }).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 });
+            arr2[i].ScoreAndRemark = userScoreAndRemark;
+        }
+
         return res.status(201).send({
             status: true,
             message: 'Success',
@@ -1861,6 +1847,6 @@ const getPastDrill = async function (req, res) {
 };
 
 
-module.exports = { getPastDrill, getOngoingDrill, getNewDrill, createPlayerRoutine, scoreAndremark, updateCategoryRoutine, getCalendarCount, getRoutineCount, getOngoingRoutine, updateRoutine, getContactCoach, updateCoachPassword, getAllUsers, updateBat_Bow, getAssignedByDrills, AcademyLogin, createUser, userLogin, getContact, createBattings, updateBatting, createBowlings, updateBowling, createWickets, updateWicket, bow_bat, createRoutine, deleteRoutine, getRoutine, category, getCategory, getTags, tag, getNewRoutine, readinessSurvey, createPowerTest, createStrengthTest, createAcademy, updateDrill, updatePassword, getPastRoutine, getPersonal, getProgress, getUsers }
+module.exports = { createFeedback, getPastDrill, getOngoingDrill, getNewDrill, createPlayerRoutine, scoreAndremark, updateCategoryRoutine, getCalendarCount, getRoutineCount, getOngoingRoutine, updateRoutine, getContactCoach, updateCoachPassword, getAllUsers, updateBat_Bow, getAssignedByDrills, AcademyLogin, createUser, userLogin, getContact, createBattings, updateBatting, createBowlings, updateBowling, createWickets, updateWicket, bow_bat, createRoutine, deleteRoutine, getRoutine, category, getCategory, getTags, tag, getNewRoutine, readinessSurvey, createPowerTest, createStrengthTest, createAcademy, updateDrill, updatePassword, getPastRoutine, getPersonal, getProgress, getUsers }
 
 

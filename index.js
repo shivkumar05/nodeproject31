@@ -1,7 +1,6 @@
 const express = require("express");
 const app = express();
 const path = require("path");
-const xlsx = require('xlsx');
 const multer = require("multer");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -39,6 +38,7 @@ const upload = multer({
         fileSize: 5000000000
     }
 });
+//*************************************************************************//
 
 //============================[ User Profile]==============================
 app.use('/image', express.static('./upload/images'))
@@ -77,7 +77,7 @@ app.put("/:userId/UpdateProfile", commnMid.jwtValidation, commnMid.authorization
 
         let { image, dob, gender, email, contact, height, weight } = data;
 
-        if (req.file) {
+        if (file) {
             data.image = `/image/${file.filename}`;
         }
         let user = await userprofile.findOneAndUpdate({ userId: userid }, {
@@ -168,19 +168,37 @@ app.get("/:userId/myVideo", commnMid.jwtValidation, commnMid.authorization, asyn
             filter.userId = userId
         }
 
-        let arr = [];
+        let arr2 = [];
 
         let getVideo = await uploadDevice.find({ $or: [filter] });
-        arr.push(...getVideo);
+        arr2.push(...getVideo);
         let OnGoingData = await onGoingDrillModel.find({ $or: [filter] });
-        arr.push(...OnGoingData);
-        let MyDrillData = await myDrillModel.find({ $or: [filter] });
-        arr.push(...MyDrillData);
+        arr2.push(...OnGoingData);
+       
+        var MyDrillData = await myDrillModel.find({ $or: [filter] });
+        
+        for (let i = 0; i < MyDrillData.length; i++) {
+            arr2.push(MyDrillData[i])
+            // console.log(MyDrillData[i])
+            let userFeedback = await feedBackModel.find({ drill_id: MyDrillData[i]._id }).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 });
+            console.log(userFeedback)
+            // arr2[i].push =userFeedback
+        }
+        
+        // for (let i = 0; i < arr2.length; i++) {
+        //     let userFeedback = await feedBackModel.find({ drill_id: arr2[i]._id }).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 });
+        //     console.log(arr2[i], "ccccc")
+        //     console.log(userFeedback, "qqqq")
+        //     arr2[i].push = userFeedback;
+        // }
+        // arr2.push([])
+
+        // arr2.push(...arr2);
 
         return res.status(200).send({
             status: true,
             message: 'Success',
-            data: arr
+            data: arr2
         })
     }
     catch (error) {
@@ -578,71 +596,6 @@ app.post("/:userId/assignedByDrills", commnMid.jwtValidation, commnMid.authoriza
     }
 });
 
-//==============================[ Post feedback]=======================
-app.post("/:userId/feedback", commnMid.jwtValidation, commnMid.authorization, upload.single('file'), async (req, res) => {
-    try {
-        var data = req.body;
-        let file = req.file;
-        let userid = req.params.userId;
-        let { userId, drill_id, timePosition, type, message, duration } = data;
-        let feedback = [];
-
-        if (file) {
-            data.file = `/image/${file.filename}`;
-        }
-        data.userId = userid;
-
-        let feedbackCreated;
-        if (Array.isArray(data)) {
-            for (let i = 0; i < data.length; i++) {
-                feedbackCreated = await feedBackModel.create(data[i]);
-
-                let obj = {}
-                obj["_id"] = feedbackCreated._id
-                obj["userId"] = feedbackCreated.userId
-                obj["timePosition"] = feedbackCreated.timePosition
-                obj["type"] = feedbackCreated.type
-                obj["message"] = feedbackCreated.message
-                obj["duration"] = feedbackCreated.duration
-                obj["file"] = feedbackCreated.file
-
-                feedback.push(obj);
-            }
-        } else {
-            feedbackCreated = await feedBackModel.create(data);
-
-            let obj = {}
-            obj["_id"] = feedbackCreated._id
-            obj["userId"] = feedbackCreated.userId
-            obj["timePosition"] = feedbackCreated.timePosition
-            obj["type"] = feedbackCreated.type
-            obj["message"] = feedbackCreated.message
-            obj["duration"] = feedbackCreated.duration
-            obj["file"] = feedbackCreated.file
-
-            feedback.push(obj);
-        }
-
-        return res.status(201).send({
-            status: true,
-            message: 'Success',
-            data: {
-                drill_id: drill_id,
-                feedback
-            }
-        })
-
-
-
-    } catch (error) {
-        return res.status(500).send({
-            status: false,
-            message: error.message
-        })
-    }
-});
-
-
 //============================[Get All Drills]=======================================
 app.get("/:userId/allDrill", commnMid.jwtValidation, commnMid.authorization, async (req, res) => {
     try {
@@ -685,11 +638,6 @@ app.get("/:userId/allDrill", commnMid.jwtValidation, commnMid.authorization, asy
         })
     }
 });
-
-
-
-
-
 
 //==================[Database Connectivity]==========================
 mongoose.connect("mongodb+srv://Cricket:4p8Pw0p31pioSP3d@cluster0.ayvqi4c.mongodb.net/Cricket-App")

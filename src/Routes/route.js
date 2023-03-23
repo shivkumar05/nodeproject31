@@ -51,6 +51,7 @@ Router.put("/:userId/updateCategoryRoutine", commnMid.jwtValidation, commnMid.au
 Router.get("/:userId/getNewDrill", commnMid.jwtValidation, commnMid.authorization, battingController.getNewDrill);
 Router.get("/:userId/getOngoingDrill", commnMid.jwtValidation, commnMid.authorization, battingController.getOngoingDrill);
 Router.get("/:userId/getPastDrill", commnMid.jwtValidation, commnMid.authorization, battingController.getPastDrill);
+Router.post("/:userId/feedback", commnMid.jwtValidation, commnMid.authorization, battingController.createFeedback);
 
 
 //===================== checking your end point valid or not =======================//
