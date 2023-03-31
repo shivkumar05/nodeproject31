@@ -13,7 +13,10 @@ const routineSchema = new mongoose.Schema({
     drill_id: { type: String, require: true },
     isCompleted: { type: Boolean, default: false },
     end_date: { type: String, require: true },
-    dates: [{ type: String, require: true }]
+    dates: [{
+        date: { type: String, require: true },
+        available: { type: Boolean, default: false }
+    }]
     // trackCompleted: { type: Boolean, default: false }
 
 }, { timestamps: true });

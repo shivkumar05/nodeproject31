@@ -171,20 +171,27 @@ app.get("/:userId/myVideo", commnMid.jwtValidation, commnMid.authorization, asyn
         let arr2 = [];
 
         let getVideo = await uploadDevice.find({ $or: [filter] });
+        // console.log(getVideo, 'aaaaaa')
+        for (let i = 0; i > getVideo.length; i++) {
+            console.log(getVideo[i])
+            console.log(getVideo[i], 'aaaaaa')
+        }
         arr2.push(...getVideo);
         let OnGoingData = await onGoingDrillModel.find({ $or: [filter] });
+        // console.log(OnGoingData,'bbbbbbbbbbb')
         arr2.push(...OnGoingData);
-       
+
         var MyDrillData = await myDrillModel.find({ $or: [filter] });
-        
+        // console.log(MyDrillData,'cccccccc')
+
         for (let i = 0; i < MyDrillData.length; i++) {
             arr2.push(MyDrillData[i])
             // console.log(MyDrillData[i])
             let userFeedback = await feedBackModel.find({ drill_id: MyDrillData[i]._id }).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 });
-            console.log(userFeedback)
+            // console.log(userFeedback)
             // arr2[i].push =userFeedback
         }
-        
+
         // for (let i = 0; i < arr2.length; i++) {
         //     let userFeedback = await feedBackModel.find({ drill_id: arr2[i]._id }).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 });
         //     console.log(arr2[i], "ccccc")
@@ -194,7 +201,6 @@ app.get("/:userId/myVideo", commnMid.jwtValidation, commnMid.authorization, asyn
         // arr2.push([])
 
         // arr2.push(...arr2);
-
         return res.status(200).send({
             status: true,
             message: 'Success',
@@ -301,6 +307,7 @@ app.post("/:userId/myDrills", commnMid.jwtValidation, commnMid.authorization, up
         obj["userId"] = MyDrillCreated.userId
         obj["isCompleted"] = MyDrillCreated.isCompleted
         obj["routine_id"] = MyDrillCreated.routine_id
+        obj["comment"] = MyDrillCreated.comment
 
         return res.status(201).send({
             status: true,
@@ -596,6 +603,9 @@ app.post("/:userId/assignedByDrills", commnMid.jwtValidation, commnMid.authoriza
     }
 });
 
+
+// completed
+
 //============================[Get All Drills]=======================================
 app.get("/:userId/allDrill", commnMid.jwtValidation, commnMid.authorization, async (req, res) => {
     try {
@@ -616,13 +626,15 @@ app.get("/:userId/allDrill", commnMid.jwtValidation, commnMid.authorization, asy
         let allRoutines = await routineModel.find({ userId: userid, $or: [filter] }).lean();
 
         let arr2 = [];
-
         for (var i = 0; i < allRoutines.length; i++) {
             arr2.push(allRoutines[i])
         }
-
         for (let i = 0; i < arr2.length; i++) {
-            let allDrill = await myDrillModel.find({ routine_id: arr2[i]._id })
+            let allDrill = await myDrillModel.find({ routine_id: arr2[i]._id }).lean()
+            for (let j = 0; j < allDrill.length; j++) {
+                let feedback = await feedBackModel.find({ drill_id: allDrill[j]._id })
+                allDrill[j].Feedback = feedback
+            }
             arr2[i].allDrill = allDrill
         }
 
@@ -631,6 +643,86 @@ app.get("/:userId/allDrill", commnMid.jwtValidation, commnMid.authorization, asy
             message: 'Success',
             data: arr2
         });
+    } catch (error) {
+        return res.status(500).send({
+            status: false,
+            message: error.message
+        })
+    }
+});
+
+// ===================[get feedback and remark] ==================//
+app.get("/:userId/getFeedbacks", commnMid.jwtValidation, commnMid.authorization, async (req, res) => {
+    try {
+        let data = req.query;
+        let userid = req.params.userId;
+
+        let { drill_id, video_id } = data;
+
+        let filter = {}
+
+        if (drill_id) {
+            filter.drill_id = drill_id;
+        }
+        if (video_id) {
+            filter.video_id = video_id;
+        }
+
+        let allfeedbacks = await feedBackModel.find({ $or: [filter] }).lean();
+        return res.status(201).send({
+            status: true,
+            message: 'Success',
+            data: allfeedbacks
+        });
+    } catch (error) {
+        return res.status(500).send({
+            status: false,
+            message: error.message
+        })
+    }
+});
+
+
+
+
+
+app.post("/:userId/create", commnMid.jwtValidation, commnMid.authorization, async (req, res) => {
+    try {
+        let data = req.body;
+        let userid = req.params.userId;
+        const allRoutines = await routineModel.find({ userId: userid }).lean();
+        for (let i = 0; i < allRoutines.length; i++) {
+            if (data.date == allRoutines[i].date && data.time == allRoutines[i].time) {
+                return res.status(400).send({ status: false, message: "you already have routine set for this time" })
+            }
+            else {
+                const startDateString = data.date;
+                const endDateString = data.end_date;
+                const [startDay, startMonth, startYear] = startDateString.split('-');
+                const [endDay, endMonth, endYear] = endDateString.split('-');
+
+                const startdate = new Date(`${startYear}`, startMonth - 1, startDay);
+                const end_date = new Date(`${endYear}`, endMonth - 1, endDay);
+
+                var dateArray = [];
+                for (let date = startdate; date <= end_date; date.setDate(date.getDate() + 1)) {
+                    const dateString = date.toLocaleDateString('en-CA', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      }).split('/').reverse().join('-');
+                    dateArray.push(dateString);
+                }
+            }
+            console.log(dateArray);
+        }
+
+        return res.status(201).send({
+            status: true,
+            message: 'Success',
+            data: data
+        });
+
     } catch (error) {
         return res.status(500).send({
             status: false,

@@ -9,6 +9,7 @@ const DrillSchema = new mongoose.Schema({
     thumbnail: { type: String },
     videoLength: { type: String },
     userId: { type: String },
+    comment: { type: String },
     isCompleted: { type: Boolean, default: false },
     routine_id: { type: String }
 

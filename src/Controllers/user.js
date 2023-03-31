@@ -67,7 +67,7 @@ const createFeedback = async function (req, res) {
         // var drill_id = req.body.drill_id;
         let userId = req.params.userId;
 
-        let { drill_id, timePosition, type, message, duration, file } = data;
+        let { drill_id, video_id, timePosition, type, message, duration, file } = data;
 
         let feedback = [];
 
@@ -81,6 +81,7 @@ const createFeedback = async function (req, res) {
                 let obj = {}
                 obj["_id"] = feedbackCreated._id
                 obj["drill_id"] = feedbackCreated.drill_id
+                obj["video_id"] = feedbackCreated.video_id
                 obj["userId"] = data.userId
                 obj["timePosition"] = feedbackCreated.timePosition
                 obj["type"] = feedbackCreated.type
@@ -96,6 +97,7 @@ const createFeedback = async function (req, res) {
             let obj = {}
             obj["_id"] = feedbackCreated._id
             obj["userId"] = data.userId
+            obj["video_id"] = data.video_id
             obj["timePosition"] = feedbackCreated.timePosition
             obj["type"] = feedbackCreated.type
             obj["message"] = feedbackCreated.message
@@ -108,7 +110,7 @@ const createFeedback = async function (req, res) {
             status: true,
             message: 'Success',
             data: {
-                drill_id: feedback[0].drill_id,
+                // drill_id: feedback[0].drill_id,
                 feedback
             }
         })
@@ -119,6 +121,63 @@ const createFeedback = async function (req, res) {
             msg: error.message
         })
     }
+    // try {
+    //     var data = req.body;
+    //     // var drill_id = req.body.drill_id;
+    //     let userId = req.params.userId;
+
+    //     let { drill_id, timePosition, type, message, duration, file } = data;
+
+    //     let feedback = [];
+
+    //     data.userId = userId;
+
+    //     let feedbackCreated;
+    //     if (Array.isArray(data)) {
+    //         for (let i = 0; i < data.length; i++) {
+    //             feedbackCreated = await feedBackModel.create(data[i]);
+
+    //             let obj = {}
+    //             obj["_id"] = feedbackCreated._id
+    //             obj["drill_id"] = feedbackCreated.drill_id
+    //             obj["userId"] = data.userId
+    //             obj["timePosition"] = feedbackCreated.timePosition
+    //             obj["type"] = feedbackCreated.type
+    //             obj["message"] = feedbackCreated.message
+    //             obj["duration"] = feedbackCreated.duration
+    //             obj["file"] = feedbackCreated.file
+
+    //             feedback.push(obj);
+    //         }
+    //     } else {
+    //         feedbackCreated = await feedBackModel.create(data);
+
+    //         let obj = {}
+    //         obj["_id"] = feedbackCreated._id
+    //         obj["userId"] = data.userId
+    //         obj["timePosition"] = feedbackCreated.timePosition
+    //         obj["type"] = feedbackCreated.type
+    //         obj["message"] = feedbackCreated.message
+    //         obj["duration"] = feedbackCreated.duration
+    //         obj["file"] = feedbackCreated.file
+
+    //     }
+
+    //     return res.status(201).send({
+    //         status: true,
+    //         message: 'Success',
+    //         data: {
+    //             drill_id: feedback[0].drill_id,
+    //             feedback
+    //         }
+    //     })
+
+    // } catch (error) {
+    //     return res.status(500).send({
+    //         status: false,
+    //         msg: error.message
+    //     })
+    // }
 };
 
 //==========================[user login]==============================
@@ -600,13 +659,14 @@ const createRoutine = async function (req, res) {
         data.userId = userid;
 
         let routines = await routineModel.find({ userId: userid });
-        console.log(routines, "11111")
+        // console.log(routines, "11111")
         let dates = routines.map(routine => routine.date);
+        
         // console.log(dates, "222")
 
-        let createRoutine = await routineModel.create(data);
+        // let createRoutine = await routineModel.create(data);
 
-        let startDateObj = new Date(start_date.split("-").reverse().join("-"));
+        let startDateObj = new Date(date.split("-").reverse().join("-"));
         let endDateObj = new Date(end_date.split("-").reverse().join("-"));
 
         var dateRange = [];
@@ -643,6 +703,10 @@ const createRoutine = async function (req, res) {
         })
     }
 };
+
+
+
+
 //=======================[Get Routine Count]=======================
 const getRoutineCount = async function (req, res) {
     try {
